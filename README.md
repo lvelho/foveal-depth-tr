@@ -1,16 +1,17 @@
 # VISGRAF documents: foveal motion and depth from motion
 
 A series of VISGRAF Lab documents (technical notes, reports, user manuals and, later, papers) by Luiz Velho, with
-Claude, on depth from a moving observer. Each document has its own folder with its own `main.tex` and `figs/`
-(`figs/SOURCES.md` names each figure's origin); in Overleaf, choose which `main.tex` is the main document. The first
-note predates this layout and stays at the root.
+Claude, on depth from a moving observer. Each document has its own folder with its own main file, named after the
+document (Overleaf is confused by two files of the same name in the hierarchy), and its own `figs/` (`figs/SOURCES.md`
+names each figure's origin); in Overleaf, choose which file is the main document. The first note predates this layout
+and stays at the root as `main.tex`.
 
 | document | folder | date | software and records |
 |---|---|---|---|
 | Foveated Vision on a Moving Head: Depth from Forward Motion (M3–M4) | the root: `main.tex`, `figs/` | 15 Nov 2026 | [visgraf/foveal-motion](https://github.com/visgraf/foveal-motion) |
-| Möbius Traces: Depth from Motion along Curved Paths | `moebius-traces/` | 19 Nov 2026 | [visgraf/deep-motion](https://github.com/visgraf/deep-motion) |
+| Möbius Traces: Depth from Motion along Curved Paths | `moebius-traces/mobius.tex` | 19 Nov 2026 | [visgraf/deep-motion](https://github.com/visgraf/deep-motion) |
 
-Build any of them with `pdflatex main.tex` twice in its folder (or `latexmk -pdf`). `techrep-ic.sty` is the VISGRAF
+Build any of them with `pdflatex` on its main file, twice, in its folder (or `latexmk -pdf`). `techrep-ic.sty` is the VISGRAF
 technical-report cover; each folder carries a copy. The report numbers on the covers (`\TRNumber`) are placeholders
 to confirm.
 
