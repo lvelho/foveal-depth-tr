@@ -27,5 +27,5 @@ for Section 7) or from the records it links.
 
 The formulation of visgraf/deep-motion (stages 2 to 5, the demo, and the representation comparisons of #11). Every
 number comes from `docs/plan.md` of visgraf/deep-motion (on `main` at `c545ab8`) or from the records it links; the
-schematic figures come from the branch `experiment/note-figs`. The bibliography was written from memory and should be
+schematic figures were merged to `main` with PR #13 (`a9fbfc0`). The bibliography was written from memory and should be
 checked before the note circulates.

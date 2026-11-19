@@ -1,11 +1,11 @@
 # Figure sources
 
-Every figure is copied from a record of [visgraf/deep-motion](https://github.com/visgraf/deep-motion) (on `main` at
-`c545ab8`, or on the branch `experiment/note-figs` for the schematic figures). None is edited.
+Every figure is copied from a record of [visgraf/deep-motion](https://github.com/visgraf/deep-motion) (on `main`; the
+schematic figures were merged with PR #13 at `a9fbfc0`). None is edited.
 
 | file | figure | origin |
 |---|---|---|
-| `traces_line.pdf` | 1 | `docs/runs/note-moebius-traces/traces_line.pdf` (`deep/note_figs.py`, formulas only; `0acfd94`, branch `experiment/note-figs`) |
+| `traces_line.pdf` | 1 | `docs/runs/note-moebius-traces/traces_line.pdf` (`deep/note_figs.py`, formulas only; `0acfd94`) |
 | `traces_primitives.pdf` | 2 | `docs/runs/note-moebius-traces/traces_primitives.pdf` (same) |
 | `compare_invariants.png` | 3 | `docs/runs/issue-11/compare_invariants.png` (`deep/compare.py`; Chat sandbox; `0864b30`) |
 | `sphere_fields.pdf` | 4 | `docs/runs/note-moebius-traces/sphere_fields.pdf` (`deep/note_figs.py`, formulas only; `0acfd94`) |
