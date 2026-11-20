@@ -1,5 +1,5 @@
 % Moebius Traces: Depth from Motion along Curved Paths
-% VISGRAF Lab technical note. 19 November 2026.
+% VISGRAF Lab technical note. 20 November 2026 (first draft 19 November).
 % Build: pdflatex mobius.tex twice, in this folder (or Overleaf with this file as the main document).
 % Figures in figs/ come from the records of visgraf/deep-motion (figs/SOURCES.md).
 \documentclass[11pt,a4paper]{article}
@@ -22,7 +22,7 @@
 \hypersetup{colorlinks=true,linkcolor=black!70!blue,citecolor=black!70!blue,urlcolor=black!70!blue,
   pdftitle={Moebius Traces: Depth from Motion along Curved Paths},
   pdfauthor={Luiz Velho, with Claude (Anthropic)},
-  pdfsubject={VISGRAF technical note, 19 November 2026}}
+  pdfsubject={VISGRAF technical note, 20 November 2026}}
 % figures resolve whether the compile runs in this folder or at the repository's root
 \graphicspath{{figs/}{moebius-traces/figs/}}
 
@@ -54,7 +54,7 @@
 \title{\textbf{M\"obius Traces:\\Depth from Motion along Curved Paths}}
 \author{Luiz Velho\\[2pt] \normalsize with Claude (Anthropic)\\[2pt]
   \normalsize VISGRAF Lab, IMPA}
-\date{\normalsize Technical Note \textperiodcentered{} 19 November 2026\\[2pt]
+\date{\normalsize Technical Note \textperiodcentered{} 20 November 2026 (first draft 19 November)\\[2pt]
   \normalsize Software and records: \url{https://github.com/visgraf/deep-motion}}
 
 \begin{document}
@@ -72,13 +72,19 @@ of the eye is an elliptic M\"obius map and carries no depth; a translation moves
 hyperbolic M\"obius map, at a speed weighted by inverse range; an arc is their sum. We call the method \emph{\mt}. With a
 perfect matcher (an oracle) on rendered scenes, it is calibrated (95\,\% intervals cover the truth 95\,\% of the time), it
 fills the blind cone that a straight path leaves at its heading, and along a 4\,m tour of a classroom it measures 99\,\%
-of the visible surface within $\pm10$\,\%. Matching real images along these traces is the open problem, and the next.
+of the visible surface within $\pm10$\,\%. With a real matcher, a sweep along the predicted traces, the same pipeline is
+accurate but sparse. In the classroom what it reports is 94--95\,\% right, and 97.5--99\,\% where several reference looks
+agree, but it covers about a ninth of what the perfect matcher covers; a seeded fill triples that at 72--79\,\% right. The
+gap is texture first: three quarters of it lies where the matcher has nothing to follow. At this resolution the turn no
+longer closes the blind cone under real matching; it moves depth between directions. A side-by-side tour shows both
+matchers at work.
 \end{abstract}
 
 \noindent\small Numbers carry their source: \WS\ measured by Claude Code on the RTX~4090 workstation; \SB\ measured in
 the Chat sandbox (CPU). Every number is in a record of the repository (\code{docs/plan.md} and
-\code{docs/runs/}) or in the GitHub issue that reported it. All depth results in this note use an oracle (perfect
-correspondences, with noise added); none uses real image matching.\normalsize
+\code{docs/runs/}) or in the GitHub issue that reported it. Sections~\ref{sec:why}--\ref{sec:oracle} use an oracle (perfect
+correspondences, with noise added); Sections~\ref{sec:matching}--\ref{sec:demo2} use real image matching, with the
+renderer's truth used only to judge.\normalsize
 
 % ================================================================================================
 \section{Why curved paths}\label{sec:why}
@@ -424,22 +430,223 @@ the 3-D cells below 2.4\,m, and the usable fraction along the tour. Oracle depth
 
 \FloatBarrier
 % ================================================================================================
+\section{Real matching}\label{sec:matching}
+
+Everything so far used perfect correspondences. From here on the matcher sees only images. The poses are still known
+(they come from the path), and the renderer's truth is used only to judge.
+
+\paragraph{The data.} Three rungs, each with a 1\,m line and a 1\,m arc at 1\,cm steps (101 looks) and the middle look as
+the reference:
+\begin{itemize}
+\item \textbf{R0}, the calibration room's Lambertian world: one clean panorama re-projected to every pose, point-sampled
+  (no noise, but pixels change in whole jumps);
+\item \textbf{R1}, renders of the calibration room at $720\times360$ ($0.5^\circ$ per pixel), 128 samples per pixel, arc radius 1.6\,m\WS;
+\item \textbf{R2}, renders of the Classroom with the same settings, arc radius 1\,m\WS.
+\end{itemize}
+The anchors are the 15\,\% of the reference's pixels with the strongest gradient along their trace (at most 20{,}000,
+elevation within $\pm70^\circ$): where a trace has something to follow.
+
+\paragraph{The trace sweep (B).} One guess of inverse range predicts the anchor's position in every look
+(Section~\ref{sec:idea}), so matching is a one-dimensional search. B sweeps 256 inverse ranges between $1/25$ and $4$\,m$^{-1}$ (ranges from 25\,cm to 25\,m), scores each by the mean squared difference between the anchor's value and
+the predicted samples along its trace (lightly blurred, each look's term truncated at $\tau=0.08$ so an occluded look
+cannot dominate), keeps the three best minima on every tenth look, and refines them on all looks with a parabola. It is
+Okutomi and Kanade's multiple-baseline stereo~\cite{okutomi} with the epipolar line replaced by the trace. B marks an
+estimate \emph{reliable} when its cost is low (at most $\tau^2/4$) and the second-best minimum costs at least twice as
+much. Table~\ref{tab:matching} gives the results.
+
+\begin{table}[h]
+\centering\footnotesize
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+right ($\pm10$\,\% of range) & R0 line & R0 arc & R1 line & R1 arc\\
+\midrule
+B, all anchors (median error) & 79.3\,\% (1.3) & 79.0\,\% (1.5) & 87.1\,\% (0.9) & 86.9\,\% (0.9)\\
+B, off depth edges & 92.8\,\% & 91.4\,\% & 96.9\,\% & 95.5\,\%\\
+B, at depth edges (21\,\% of anchors) & 32.1\,\% & 34.4\,\% & 51.0\,\% & 52.0\,\%\\
+B, marked reliable: kept, then right & 51.9, 99.3\,\% & 49.5, 99.3\,\% & 77.6, 94.8\,\% & 75.6, 95.2\,\%\\
+A2, continuity, all anchors & 72.7\,\% & 70.9\,\% & 85.6\,\% & 84.8\,\%\\
+A1, flow, $15^\circ\le\psi\le165^\circ$ & 14.7\,\% & 16.7\,\% & 43.4\,\% & 36.6\,\%\\
+\bottomrule
+\end{tabular}
+\caption{Real matching on 20{,}000 textured anchors per run, by range along the anchor's ray. Rendered pixels (R1) are
+easier than R0's point-sampled ones, by about 8 points overall and 18 at depth edges. Chat sandbox\SB.}\label{tab:matching}
+\end{table}
+
+\paragraph{Temporal continuity and instantaneous flow.} Two differential alternatives were tried on the same anchors. The
+Lagrangian one (A2) follows each anchor with Gauss--Newton on brightness constancy from a 2\,m guess, letting the window of
+looks grow from $\pm1$ to $\pm50$, in the spirit of the inverse-depth Kalman filter of Matthies, Kanade and
+Szeliski~\cite{matthies}. It reaches B's answers without any search, 2.4 times faster, but not better (Table~\ref{tab:matching});
+on R1 the two agree on 84\,\% of the anchors and fail together on 12\,\%. The hypothesis that continuity would recover
+the anchors B declines to mark failed: on R0, away from depth edges, B is right on those anchors 78--79\,\% of the time
+and A2 63--66\,\%\SB. The Eulerian one (A1) is the
+\emph{instantaneous flow} of equation~\eqref{eq:dl}: a one-unknown Lucas--Kanade fit~\cite{lucaskanade} at fixed pixels from
+three looks 2\,cm apart. It is dense and 90 times faster than B, and too imprecise alone: a median error of 12--16\,\% on
+R1\SB. Precision comes from the length of the trace. The flow's place is as a dense start for a filter, not as an estimate:
+a first answer to the question this note left open.
+
+\paragraph{Depth edges.} A fifth of the anchors sit within 2 pixels of a jump in depth, and B gets half of them wrong.
+The diagnosis was clear\SB: of the edge anchors B gets wrong, 94\,\% have their pixel centre on the \emph{far} surface,
+while B's estimate lies on the \emph{near} one for 65--67\,\%. The anchor's texture is the occluding contour, which moves
+with the foreground: stereo's foreground fattening~\cite{scharstein}. Three ways of splitting an edge into two layers
+failed, each with its controls failing as they must and no threshold moved: ranging flanking pixels 2\,px away (they are
+as badly ranged as the anchors, because over a 1\,m window the contour sweeps across the background beside it); scoring
+the far surface only on the half of the window where the near one does not hide it; and fitting both layers from flanks
+3\,px away (it invented far layers on 65\,\% of anchors nowhere near an edge). They share one flaw: each scores the far
+surface against the anchor's own value, which at a contour is a mixture of both surfaces. Half of the problem, though, was
+the metric. An estimate on the silhouette of the near object is a true 3-D point; it only misses the background point
+behind the pixel's centre. We therefore judge an estimate \emph{surface-right} if it is within $\pm10$\,\% of the true range at any
+pixel of its $3\times3$ neighbourhood. At edges B is then 75--76\,\% right instead of 51--52\,\%, and 92\,\% overall; an
+estimate between two surfaces still fails (43--45\,\% at edges), and B's reliable anchors are 98.3--98.6\,\% right\SB. The
+rest of this note uses that metric.
+
+\paragraph{Surfaces without texture.} B matches only its anchors. Every other pixel can take the range of a nearby reliable
+anchor, the best of its eight nearest checked against its own trace (PatchMatch's propagation and
+verification~\cite{patchmatch}, done once from the seeds). That method, H, reaches 75\,\% of the pixels at 86--87\,\%
+surface-right, 15 points better than B alone where texture is weakest\SB. Two findings bound it. Checking each candidate
+against its trace helps only where traces move: near the heading the unverified nearest seed is 12--20 points better.
+And what H cannot reach is mostly the calibration room's bare ceiling, which has no texture and so no evidence: growing
+the seeds across it is mostly wrong, and even a plane fitted to the estimates cannot find it, because the few points on it
+lie a median of 38\,cm off\SB. Following Luiz's decision, the ceiling stays ``no evidence''.
+
+\paragraph{The Classroom.} In the Classroom's clutter (R2) the mark still separates right from wrong: B's reliable anchors
+are 95.4--95.9\,\% surface-right. But the mark keeps only 46\,\% of the anchors, against 76--78\,\% in the room, and B
+away from edges falls from 96--97\,\% to 84\,\%\WS. Splitting B's wrong anchors away from edges by cause along their true
+traces\WS: 15--22\,\% are \emph{occluded} for part of the window (a chair passes in front), 31--38\,\% are
+\emph{photometric} (visible, but their brightness changes across the looks), and 36--51\,\% are \emph{ambiguous} (their
+trace is consistent, but another range fits better). A $5\times5$ normalised-correlation cost (B2) helped in the room
+(94.6 against 91.6\,\% on the arc\SB) and failed in the Classroom: worse away from edges (78--82\,\%) with a mark that keeps
+29--31\,\%\WS. B stays the matcher.
+
+% ================================================================================================
+\section{End to end}\label{sec:e2e}
+
+The matcher's output joins the fusion along a whole path. On each of the Classroom's two full paths (Table~\ref{tab:fusion};
+218 looks, now at 720 wide), B runs at five reference looks, each over its own $\pm50$-look window. Windows on the turn span
+the arc and, at either end, a line piece; B predicts traces from the poses, so a join needs nothing new. Each reliable
+estimate is a 3-D point. The points go into 2\,cm world cells keyed by the \emph{estimated} position, so no truth is used,
+and a cell's point is the median of its estimates.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+the Classroom & turn & straight\\
+\midrule
+fused cells right (35--37 thousand cells) & 94.81\,\% & 95.10\,\%\\
+cells from $\ge2$ references, right & 98.66\,\% & 97.74\,\%\\
+yield within $15^\circ$ of the heading (reliable and right) & 15.8\,\% & 17.8\,\%\\
+yield at 60--120$^\circ$ & 50.2\,\% & 44.0\,\%\\
+coverage of the surface (2\,cm cells) & 7.8\,\% & 6.5\,\%\\
+\bottomrule
+\end{tabular}
+\caption{End to end, five references of 20{,}000 anchors per path. Controls: with the mirrored path, 4.3 and 0.9\,\% of
+cells right; confirmed cells whose points are moved 20\,\% along their rays, 36\,\%. Code, workstation\WS.}\label{tab:e2e}
+\end{table}
+
+Two things stand out (Table~\ref{tab:e2e}). \emph{Agreement between references is the signal}: a cell that two or more
+references put a point in is 97.7--98.7\,\% right. \emph{The turn's geometric advantage does not survive real matching
+at this resolution.} Under the oracle at the same 720 wide, in the calibration room, the arc's heading cone was 19 points more
+usable than the line's (89 against 70\,\% at 0.5\,px, 1\,m windows\WS). With B, the turn is 2 points behind the straight path at the heading. It moves
+yield between sectors instead: it gains at the side (60--120$^\circ$, 6 points) and directly behind (165--180$^\circ$),
+and loses at 15--60$^\circ$ and 120--165$^\circ$. In the cone, the
+matcher and not the geometry is now the limit.
+
+% ================================================================================================
+\section{How good is it}\label{sec:assess}
+
+To say how good the method is with the real matcher, both matchers ran on the same renders, at the same 12 reference
+looks per path (every 10 looks), through the same fusion and judged by the same metric. The perfect matcher is the
+oracle of Section~\ref{sec:oracle}, at 0.5\,px, on every pixel of a 2-pixel grid; it keeps an estimate when its interval is
+within $\pm10$\,\%. The real one is B, alone and with H (Figure~\ref{fig:assess}, Table~\ref{tab:assess}).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{assess_tradeoff.png}
+\caption{(a) Coverage of the surface against fused cells right, for the perfect matcher, B and B\,+\,H, on both paths
+in the Classroom (filled; Code, workstation\WS) and the calibration room (open; Chat sandbox\SB). (b) The cells the perfect
+matcher covers and B does not, by what B had there: no anchor, anchors none marked reliable, or a reliable estimate that
+is wrong.}\label{fig:assess}
+\end{figure}
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Classroom (turn / straight) & cells right & coverage & coverage / perfect's\\
+\midrule
+perfect matcher & 99.99 / 99.98\,\% & 86.2 / 80.4\,\% & ---\\
+B & 93.98 / 94.59\,\% & 10.6 / 8.8\,\% & 12.3 / 11.0\,\%\\
+B, cells from $\ge4$ references & 98.9 / 97.5\,\% & & \\
+B\,+\,H & 79.0 / 71.9\,\% & 34.9 / 26.5\,\% & 40.5 / 33.0\,\%\\
+\bottomrule
+\end{tabular}
+\caption{The assessment: 12 references per path. Controls: the perfect matcher fitted with the mirrored path's poses,
+2.9 and 0.0\,\% right; B on the mirrored path, 1.5 and 0.9\,\%. Code, workstation\WS.}\label{tab:assess}
+\end{table}
+
+\begin{itemize}
+\item \textbf{The geometry is not the limit.} With perfect correspondences a 4\,m walk recovers 80--86\,\% of the
+  Classroom's surface essentially without error. What it misses lies beyond 3\,m (about 61\,\% covered there), where the
+  intervals widen at $0.5^\circ$ per pixel.
+\item \textbf{The real matcher is accurate but sparse.} B's cells are 94--95\,\% right, 97.5--98.9\,\% where four or more
+  references agree; it covers about a ninth of what the perfect matcher covers. H's fill triples that, at 72--79\,\% right.
+\item \textbf{The gap is texture first.} Of the surface the perfect matcher covers and B does not, 73--74\,\% holds no
+  anchor at all, 15--18\,\% holds anchors that B declines to trust, and 9--12\,\% holds wrong estimates.
+\item \textbf{Clutter costs accuracy.} In the calibration room the same pipeline gives B 99.3--99.6\,\% right and B\,+\,H
+  86--87\,\%\SB; the Classroom costs B about 5 points and B\,+\,H about 10.
+\item \textbf{Nearby references are not independent.} References 10 looks apart share 91 of their 101 looks, so their
+  agreement is weaker evidence than it looks: denser references raised B's coverage over Section~\ref{sec:e2e}'s and
+  lowered its confirmed accuracy (98.7 and 97.7 to 97.4 and 96.7\,\%)\WS.
+\end{itemize}
+
+% ================================================================================================
+\section{Side by side}\label{sec:demo2}
+
+The tour of Section~\ref{sec:oracle} was run again with both matchers at once (Figure~\ref{fig:demo2}): the straight
+path's first 2\,m, then the turn, 418 looks at 720 wide. A reference every 10 looks (32 in all) releases its estimates when
+its window is complete, so both maps trail the current look by half a metre: the real matcher needs the looks ahead, and
+the perfect one is held to the same schedule. Each frame fuses both maps and colours every cell right or wrong. Checks
+confirm that the tour is the planned curve, that the map grown frame by frame ends at the batch fusion, and that nothing
+is shown before its window is complete; each control fails as it must\WS.
+
+At the end the perfect matcher covers 88.9\,\% of the Classroom's surface at 99.97\,\% right; the real one, B\,+\,H, 41.4\,\%
+at 73.6\,\%\WS. Along the tour the perfect matcher's coverage reaches 65\,\% by the turn and the real one's rises steadily, at
+a nearly constant 72--75\,\% right. The real map's wrong cells gather in bands across the room: the rows of desks and
+chairs, where clutter, repeated structure and occlusion meet. That is where the assessment located the gap.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{demo2_last_match.png}
+\caption{The last frame of demo D2 in the Classroom: the current look with the real map's cells, the coverage and the
+share of cells right along the tour, and the two fused maps (below 2.4\,m), perfect matcher left and real matcher right.
+Right cells by height, wrong cells in orange. The videos stay on the workstation. Code, workstation\WS.}\label{fig:demo2}
+\end{figure}
+
+
+% ================================================================================================
 \section{What remains}\label{sec:remains}
 
-\paragraph{Real matching.} Everything above uses perfect correspondences. The formulation tells a matcher what to deliver:
-at 1\,cm steps and $0.1^\circ$ pixels a point 2\,m to the side moves about 3 pixels between looks (an estimate), so following it from one
-look to the next is easy and keeping it over a hundred looks is the difficulty; and one guess of $D$ or $\rho$ predicts the
-whole trace, so matching can be a one-dimensional sweep over the invariant that scores how consistent the samples along
-each predicted trace are, which generalises epipolar-plane-image analysis~\cite{bolles} from lines to arcs, or stereo
-between slit mosaics. The failures will be photometric, not geometric: occlusion edges where traces end, textureless
-surfaces, highlights, and the window band where rays hit nothing.
+\paragraph{Reach into weak texture.} The assessment names the first lever. B's anchors are, by construction, the
+15\,\% of pixels where a trace has the most to follow, and three quarters of the gap holds none of them. More anchors
+(with the mark guarding them), better candidates for the seeded fill (a local plane from the seeds rather than a
+constant range), and references spaced far enough apart to be independent witnesses are the obvious next steps.
 
-\paragraph{Instantaneous flow.} The method uses finite traces over a whole piece of path. Instantaneous optical flow is a
-different and complementary view: equation~\eqref{eq:dl} says that, at each instant, the flow along a meridian measures
-inverse range directly, and the decomposition into an elliptic (rotation) and a weighted hyperbolic (translation)
-field~\cite{longuethiggins} holds at every moment, not only along a primitive. Flow could seed a trace's guess, track
-points between looks, handle paths that are not yet split into primitives, or estimate the motion itself. What flow brings
-to the picture, and how it should be combined with traces, is a question to explore.
+\paragraph{Clutter.} In the Classroom the failures away from edges are occlusion during the window, brightness that
+changes across the looks, and repeated structure. A window could end where reliable neighbours say a trace is hidden; a
+cost could compare shorter sub-windows to tolerate slow shading; and reliable neighbours could break the ties that
+repeated desks create. The patch cost tried here did not help.
+
+\paragraph{Resolution.} At $0.5^\circ$ per pixel even the perfect matcher thins out beyond 3\,m, and the turn's advantage
+in the heading cone vanished under real matching. Whether it returns at the design resolution ($0.1^\circ$) is the one
+experiment that could change Section~\ref{sec:e2e}'s conclusion. It is deferred, not abandoned.
+
+\paragraph{Instantaneous flow.} Section~\ref{sec:matching} answered part of the question this note first left open: from
+2\,cm of motion the flow is dense and fast but too imprecise to range a point. Its place is as a start for continuity (A2)
+or for the fill's candidates, for paths not yet split into primitives, and for estimating the motion itself. Equation~\eqref{eq:dl}
+and the decomposition into an elliptic and a weighted hyperbolic field~\cite{longuethiggins} hold at every moment.
+
+\paragraph{What has no evidence.} A blank ceiling cannot be ranged from its images. A prior on the room's layout could
+close it, but that is reconstruction, not depth from motion, and it is kept separate.
 
 \paragraph{Other open questions.} Sampling in time driven by uncertainty (Section~\ref{sec:atlas}); joints between pieces
 (clothoids) and paths in 3D (helices); transitions between perceptual regimes (binocular, lateral sway, forward motion),
@@ -447,8 +654,10 @@ read as weighting by information rather than switching; the action policy that c
 concentric mosaics~\cite{shum}, stereo panoramas~\cite{peleg}, crossed-slits projections~\cite{zomet} and
 epipolar-plane-image analysis~\cite{bolles} before any claim of novelty.
 
-\paragraph{Limitations.} Synthetic images; known motion (the poses come from the path); the oracle stands in for matching;
-two scenes; and a short arc ($10.7^\circ$) in the sandbox changed almost nothing overall, so a turn must be real to matter.
+\paragraph{Limitations.} Synthetic images; known motion (the poses come from the path); two scenes; real matching only at
+$0.5^\circ$ per pixel; metrics that use the renderer's truth, and one (the surface metric) that accepts an estimate on a
+silhouette as right; and a short arc ($10.7^\circ$) in the sandbox changed almost nothing overall, so a turn must be real
+to matter.
 
 % ================================================================================================
 \section{How the work was done}\label{sec:process}
@@ -460,11 +669,15 @@ decided: the reformulation after a brainstorm he asked to keep open until it clo
 oracle-first order, the sensor's rendering path, the splits of stage 5, and the name. Every check shipped with a control
 that must fail. Several checks failed on their first run, and three of those failures taught something about the
 geometry (the arc's missing blind direction, the first-order time step, the stall at a nadir); none had its threshold
-moved. The work in this note took four days, 16 to 19 November 2026.
+moved. The real-matching work added its own lessons: a hypothesis (temporal continuity rescues the anchors the sweep
+declines) and four methods (three for depth edges, one patch cost) failed their declared checks and were kept as records;
+two checks were amended before their data existed, when a dry run showed they could not fail; and the matcher's own
+limits, not the geometry, turned out to set the result. The work in this note took five days, 16 to 20 November 2026.
 
 \paragraph{Records.} Everything above is in \code{visgraf/deep-motion}~\cite{dm}: \code{docs/plan.md} (the plan, the
-decisions P-D1 to P-D3, and every result with its command and commit), \code{docs/runs/issue-2/} to \code{issue-11/}, and
-issues \#2 to \#11. The demo's videos stay on the workstation. Figure sources are listed in \code{figs/SOURCES.md}.
+decisions P-D1 to P-D3 and those of 20 November, and every result with its command and commit), the records in
+\code{docs/runs/issue-N/} and \code{docs/runs/dm-issue-N/}, and issues \#2 to \#24. The demos' videos stay on the
+workstation. Figure sources are listed in \code{figs/SOURCES.md}.
 
 % ================================================================================================
 \begin{thebibliography}{99}
@@ -488,6 +701,14 @@ issues \#2 to \#11. The demo's videos stay on the workstation. Figure sources ar
   \emph{IEEE Transactions on Pattern Analysis and Machine Intelligence}, 25(6):741--754, 2003.
 \bibitem{longuethiggins} H.~C. Longuet-Higgins and K.~Prazdny. The interpretation of a moving retinal image.
   \emph{Proceedings of the Royal Society of London B}, 208:385--397, 1980.
+\bibitem{matthies} L.~Matthies, T.~Kanade and R.~Szeliski. Kalman filter-based algorithms for estimating depth from
+  image sequences. \emph{International Journal of Computer Vision}, 3(3):209--236, 1989.
+\bibitem{lucaskanade} B.~D. Lucas and T.~Kanade. An iterative image registration technique with an application to stereo
+  vision. In \emph{Proceedings of the 7th International Joint Conference on Artificial Intelligence}, pages 674--679, 1981.
+\bibitem{scharstein} D.~Scharstein and R.~Szeliski. A taxonomy and evaluation of dense two-frame stereo correspondence
+  algorithms. \emph{International Journal of Computer Vision}, 47(1--3):7--42, 2002.
+\bibitem{patchmatch} C.~Barnes, E.~Shechtman, A.~Finkelstein and D.~B. Goldman. PatchMatch: a randomized correspondence
+  algorithm for structural image editing. \emph{ACM Transactions on Graphics (Proc. SIGGRAPH)}, 28(3), 2009.
 \bibitem{needham} T.~Needham. \emph{Visual Complex Analysis}. Oxford University Press, 1997.
 \bibitem{penrose} R.~Penrose. The apparent shape of a relativistically moving sphere. \emph{Proceedings of the Cambridge
   Philosophical Society}, 55:137--139, 1959.
