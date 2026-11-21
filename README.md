@@ -10,6 +10,7 @@ and stays at the root as `main.tex`.
 |---|---|---|---|
 | Foveated Vision on a Moving Head: Depth from Forward Motion (M3–M4) | the root: `main.tex`, `figs/` | 15 Nov 2026 | [visgraf/foveal-motion](https://github.com/visgraf/foveal-motion) |
 | Möbius Traces: Depth from Motion along Curved Paths | `moebius-traces/mobius.tex` | 19 Nov 2026 | [visgraf/deep-motion](https://github.com/visgraf/deep-motion) |
+| Why the Real Matcher Fell Short: A Diagnosis on a Straight Path | `straight-diagnosis/diagnosis.tex` | 21 Nov 2026 | [visgraf/deep-motion](https://github.com/visgraf/deep-motion), issue #26 |
 
 Build any of them with `pdflatex` on its main file, twice, in its folder (or `latexmk -pdf`). `techrep-ic.sty` is the VISGRAF
 technical-report cover; each folder carries a copy. The report numbers on the covers (`\TRNumber`) are placeholders
@@ -29,3 +30,10 @@ The formulation of visgraf/deep-motion (stages 2 to 5, the demo, and the represe
 number comes from `docs/plan.md` of visgraf/deep-motion (on `main` at `c545ab8`) or from the records it links; the
 schematic figures were merged to `main` with PR #13 (`a9fbfc0`). The bibliography was written from memory and should be
 checked before the note circulates.
+
+## The straight-path diagnosis (`straight-diagnosis/`)
+
+Issue #26 of visgraf/deep-motion: why the real matcher of the Möbius Traces note fell short, on the Classroom's straight path
+alone (stages 11, 11b and 11c). Every number comes from `docs/plan.md` of visgraf/deep-motion and the records in
+`docs/runs/dm-issue-26/`, on branch `experiment/p11-straight-cause` (at `9b3c84f`), or from issue #26. The figures are
+drawn by `docs/runs/dm-issue-26/fig_note.py` (`figs/SOURCES.md`).
