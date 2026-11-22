@@ -11,6 +11,7 @@ and stays at the root as `main.tex`.
 | Foveated Vision on a Moving Head: Depth from Forward Motion (M3–M4) | the root: `main.tex`, `figs/` | 15 Nov 2026 | [visgraf/foveal-motion](https://github.com/visgraf/foveal-motion) |
 | Möbius Traces: Depth from Motion along Curved Paths | `moebius-traces/mobius.tex` | 19 Nov 2026 | [visgraf/deep-motion](https://github.com/visgraf/deep-motion) |
 | Why the Real Matcher Fell Short: A Diagnosis on a Straight Path | `straight-diagnosis/diagnosis.tex` | 21 Nov 2026 | [visgraf/deep-motion](https://github.com/visgraf/deep-motion), issue #26 |
+| Real Matching along Curved Paths: From the Line to the Classroom Tour | `curved-paths/curved.tex` | 22 Nov 2026 | [visgraf/deep-motion](https://github.com/visgraf/deep-motion), issues #27 to #35 |
 
 Build any of them with `pdflatex` on its main file, twice, in its folder (or `latexmk -pdf`). `techrep-ic.sty` is the VISGRAF
 technical-report cover; each folder carries a copy. The report numbers on the covers (`\TRNumber`) are placeholders
@@ -37,3 +38,12 @@ Issue #26 of visgraf/deep-motion: why the real matcher of the Möbius Traces not
 alone (stages 11, 11b and 11c). Every number comes from `docs/plan.md` of visgraf/deep-motion and the records in
 `docs/runs/dm-issue-26/`, on branch `experiment/p11-straight-cause` (at `9b3c84f`), or from issue #26. The figures are
 drawn by `docs/runs/dm-issue-26/fig_note.py` (`figs/SOURCES.md`).
+
+## Real matching along curved paths (`curved-paths/`)
+
+Issues #27 to #35 of visgraf/deep-motion: the process standard (S1, S2), errors first and coverage first on the
+Classroom's straight path (stages 12, 12b and 13a, demos D3 and D4), the matcher N extended to curved paths (stage 14),
+and demo D2's tour redone with N's coverage map (demo D5). Every number comes from `docs/plan.md`, `docs/standard.md` and
+the records in `docs/runs/dm-issue-28/` to `dm-issue-35/` of visgraf/deep-motion, on `main` at `190332a`, or from
+issues #27 to #35. Figures 1 to 3 are drawn by `curved-paths/figs/src/fig_note.py`; figures 4 and 5 are copied from D5's
+record (`figs/SOURCES.md`).
